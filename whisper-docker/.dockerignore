@@ -1,0 +1,9 @@
+.git
+.gitignore
+README.md
+data/
+*.mp3
+*.wav
+*.flac
+*.ogg
+*.m4a

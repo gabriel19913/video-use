@@ -125,7 +125,25 @@ def group_into_phrases(
 def pack_one_file(json_path: Path, silence_threshold: float) -> tuple[str, float, list[dict]]:
     """Return (header_name, duration, phrases) for one transcript file."""
     data = json.loads(json_path.read_text())
-    words = data.get("words", [])
+    
+    if "words" in data:
+        # ElevenLabs Scribe format
+        words = data["words"]
+    elif "segments" in data:
+        # OpenAI Whisper format
+        words = []
+        for seg in data["segments"]:
+            if "words" in seg:
+                for w in seg["words"]:
+                    words.append({
+                        "start": w.get("start"),
+                        "end": w.get("end"),
+                        "text": w.get("word", ""),
+                        "type": "word"
+                    })
+    else:
+        words = []
+        
     phrases = group_into_phrases(words, silence_threshold)
     if phrases:
         duration = phrases[-1]["end"] - phrases[0]["start"]

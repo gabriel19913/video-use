@@ -1,0 +1,21 @@
+services:
+  whisper:
+    build: .
+    container_name: whisper
+    volumes:
+      # Monte seus arquivos de áudio aqui
+      - ./data:/data
+      # Persistir modelos baixados para não re-baixar a cada execução
+      - whisper-cache:/root/.cache/whisper
+    # Descomente as linhas abaixo para habilitar GPU NVIDIA
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+volumes:
+  whisper-cache:
+    name: whisper-model-cache
