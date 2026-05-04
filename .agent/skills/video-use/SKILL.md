@@ -1,6 +1,6 @@
 ---
 name: video-use
-description: Edit any video by conversation. Receive an MP4 file, transcribe via local Whisper-Docker, remove silences, errors, and duplicities (retakes). Generate overlay animations, burn subtitles, color grade, and return a masterful edited MP4. Ask questions, confirm the plan, execute, iterate, persist.
+description: Edit any video by conversation. Receive an MP4 file, transcribe via local Whisper-Docker or Whisper Local (GPU), remove silences, errors, and duplicities (retakes). Generate overlay animations, burn subtitles, color grade, and return a masterful edited MP4. Ask questions, confirm the plan, execute, iterate, persist.
 ---
 
 # Video Use
@@ -27,7 +27,7 @@ These are the things where deviation produces silent failures or broken output. 
 6. **Never cut inside a word.** Snap every cut edge to a word boundary from the Whisper transcript.
 7. **Pad every cut edge.** Working window: 30–200ms. Whisper timestamps drift slightly — padding absorbs the drift. Tighter for fast-paced, looser for cinematic.
 8. **Word-level verbatim ASR only.** Never SRT/phrase mode (loses sub-second gap data). Never normalized fillers (loses editorial signal).
-9. **Cache transcripts per source.** Never re-transcribe unless the source file itself changed. Use local Whisper-Docker via `transcribe.py`.
+9. **Cache transcripts per source.** Never re-transcribe unless the source file itself changed. Use local Whisper-Docker or local Whisper API via `transcribe.py`.
 10. **Parallel sub-agents for multiple animations.** Never sequential. Spawn N at once via the `Agent` tool; total wall time ≈ slowest one.
 11. **Strategy confirmation before execution.** Never touch the cut until the user has approved the plain-English plan.
 12. **All session outputs in `<videos_dir>/edit/`.** Never write inside the `video-use/` project directory.
@@ -59,7 +59,8 @@ The skill lives in `video-use/`. User footage lives wherever they put it. All se
 
 First-time install lives in `install.md` (clone, deps, ffmpeg, skill registration, API key). Don't re-run it every session; on cold start just verify:
 
-- Docker and Docker Compose installed and running, since transcription relies on `whisper-docker`.
+- Docker and Docker Compose installed and running, if using the `docker` backend for `whisper-docker`.
+- If using `--backend local` for transcription, `openai-whisper` and its PyTorch/CUDA dependencies must be installed in the Python environment.
 - `ffmpeg` + `ffprobe` on PATH.
 - Python deps installed (`uv sync` or `pip install -e .` inside the repo).
 - `yt-dlp`, `manim`, Remotion installed only on first use.
@@ -69,8 +70,8 @@ Helpers (`helpers/transcribe.py`, `helpers/render.py`, etc.) live alongside this
 
 ## Helpers
 
-- **`transcribe.py <video>`** — single-file local Whisper call via Docker. `--language` optional. Cached.
-- **`transcribe_batch.py <videos_dir>`** — 4-worker parallel transcription. Use for multi-take.
+- **`transcribe.py <video> [--backend local|docker]`** — single-file local Whisper call. Cached.
+- **`transcribe_batch.py <videos_dir> [--backend local|docker]`** — 4-worker parallel transcription. Use for multi-take.
 - **`pack_transcripts.py --edit-dir <dir>`** — `transcripts/*.json` → `takes_packed.md` (phrase-level, break on silence ≥ 0.5s).
 - **`timeline_view.py <video> <start> <end>`** — filmstrip + waveform PNG. On-demand visual drill-down. **Not a scan tool** — use it at decision points, not constantly.
 - **`render.py <edl.json> -o <out>`** — per-segment extract → concat → overlays (PTS-shifted) → subtitles LAST. `--preview` for 720p fast. `--build-subtitles` to generate master.srt inline.

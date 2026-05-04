@@ -17,11 +17,12 @@ Este documento descreve detalhadamente as mudanças implementadas na skill `vide
 
 ## 🚀 Como funciona agora
 
-1. **Transcrição Local via Docker (Gratuita, Privada e Ilimitada):**  
-   A dependência de APIs externas foi totalmente removida. O script `helpers/transcribe.py` foi reescrito para utilizar o ecossistema do **`whisper-docker`**.
-   - A transcrição agora roda via `docker compose` em contêineres locais.
+1. **Transcrição via Docker ou Local via GPU (Gratuita, Privada e Ilimitada):**  
+   A dependência de APIs externas foi totalmente removida. O script `helpers/transcribe.py` foi reescrito para suportar tanto o uso do ecossistema **`whisper-docker`** quanto a execução **nativa local (`--backend local`)** do Whisper (com suporte a GPU, usando `openai-whisper` diretamente).
+   - O modo `docker` roda a transcrição via `docker compose` em contêineres locais.
+   - O modo `local` executa a transcrição localmente explorando toda a performance da sua placa de vídeo caso tenha configurado o ambiente Python com PyTorch/CUDA.
    - É utilizado por padrão o modelo `turbo` do OpenAI Whisper.
-   - **Vantagem:** Privacidade total, sem custos por requisição, altíssima agilidade (especialmente quando houver GPU disponível) e sem limites de tamanho de áudio.
+   - **Vantagem:** Privacidade total, sem custos por requisição, altíssima agilidade (especialmente ao rodar via GPU) e sem limites de tamanho de áudio.
 
 2. **Compatibilidade Flexível no Empacotamento de Texto:**  
    O arquivo `helpers/pack_transcripts.py` foi reescrito para analisar os arquivos `.json` nativos do Whisper (em que a hierarquia divide `segments` e dentro deles, `words`).
@@ -39,5 +40,13 @@ Este documento descreve detalhadamente as mudanças implementadas na skill `vide
 Ao utilizar a skill no fluxo moderno, a mágica acontece de forma muito mais coesa para o usuário. Basta:
 
 1. Jogar seus clipes brutos (formato `.mp4`) dentro da sua pasta de projeto.
-2. Pedir ao agente para "Fazer a edição".
-3. **Resultado:** O áudio nem sai do seu computador. O Whisper processa o texto internamente através do Docker; o LLM interpreta as falas de forma textual; caça todas as suas gaguejadas, retakes e momentos onde você parou para pensar; aplica crossfades precisos para esconder os cortes, avalia visualmente se os cortes fizeram sentido, e exporta no final um `final.mp4` **fluido, magistralmente editado e com timing impecável**. Tudo isso respeitando restrições estritas de produção de vídeo profissional.
+2. Pedir ao agente para "Fazer a edição" usando a linguagem natural.
+
+**Como escolher a transcrição (Docker vs. GPU Local) via Chat:**
+Como esta skill é operada via IA, você **não precisa rodar nenhum script manualmente**. Quando for pedir a edição, você pode simplesmente instruir o agente sobre qual modo deseja utilizar:
+- **Para rodar via Docker (Padrão):**  
+  > *"Edite o vídeo `meu_video.mp4` que está na pasta."*
+- **Para rodar nativamente na sua máquina usando a GPU:**  
+  > *"Edite o vídeo `meu_video.mp4`, mas certifique-se de usar a transcrição local com GPU (backend local)."*  
+
+**Resultado:** O agente lerá as instruções da skill, entenderá o seu pedido e rodará automaticamente o script de transcrição nos bastidores utilizando a flag `--backend local`. O áudio não sai do seu computador. O LLM interpreta as falas de forma textual; caça todas as suas gaguejadas, retakes e momentos onde você parou para pensar; aplica crossfades precisos para esconder os cortes, avalia visualmente se os cortes fizeram sentido, e exporta no final um `final.mp4` **fluido, magistralmente editado e com timing impecável**. Tudo isso respeitando restrições estritas de produção de vídeo profissional.

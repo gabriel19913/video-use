@@ -10,6 +10,7 @@ Usage:
     python helpers/transcribe_batch.py <videos_dir> --workers 4
     python helpers/transcribe_batch.py <videos_dir> --num-speakers 2
     python helpers/transcribe_batch.py <videos_dir> --edit-dir /custom/edit
+    python helpers/transcribe_batch.py <videos_dir> --backend local
 """
 
 from __future__ import annotations
@@ -20,7 +21,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-from transcribe import load_api_key, transcribe_one
+from transcribe import transcribe_one
 
 
 VIDEO_EXTS = {".mp4", ".MP4", ".mov", ".MOV", ".mkv", ".MKV", ".avi", ".AVI", ".m4v"}
@@ -51,6 +52,13 @@ def main() -> None:
         help="Optional ISO language code. Omit to auto-detect per file.",
     )
     ap.add_argument(
+        "--backend",
+        type=str,
+        choices=["docker", "local"],
+        default="docker",
+        help="Backend to use: 'docker' (default) or 'local' (requires openai-whisper installed in current environment).",
+    )
+    ap.add_argument(
         "--num-speakers",
         type=int,
         default=None,
@@ -77,9 +85,7 @@ def main() -> None:
         print("nothing to do")
         return
 
-    api_key = load_api_key()
-
-    print(f"transcribing {len(pending)} files with {args.workers} parallel workers")
+    print(f"transcribing {len(pending)} files with {args.workers} parallel workers using {args.backend} backend")
     t0 = time.time()
 
     errors: list[tuple[Path, str]] = []
@@ -89,7 +95,7 @@ def main() -> None:
                 transcribe_one,
                 video=v,
                 edit_dir=edit_dir,
-                api_key=api_key,
+                backend=args.backend,
                 language=args.language,
                 num_speakers=args.num_speakers,
                 verbose=False,

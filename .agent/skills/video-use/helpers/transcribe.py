@@ -9,6 +9,7 @@ Usage:
     python helpers/transcribe.py <video_path>
     python helpers/transcribe.py <video_path> --edit-dir /custom/edit
     python helpers/transcribe.py <video_path> --language Portuguese
+    python helpers/transcribe.py <video_path> --backend local
 """
 
 from __future__ import annotations
@@ -63,10 +64,36 @@ def call_whisper_docker(
     return out_dir / f"{video_path.stem}.json"
 
 
+def call_whisper_local(
+    video_path: Path,
+    out_dir: Path,
+    language: str | None = None,
+    verbose: bool = True,
+) -> Path:
+    cmd = [
+        "whisper",
+        str(video_path.resolve()),
+        "--model", "turbo",
+        "--output_format", "json",
+        "--word_timestamps", "True",
+        "--output_dir", str(out_dir.resolve())
+    ]
+    
+    if language:
+        cmd.extend(["--language", language])
+
+    if verbose:
+        print(f"  Running Whisper Locally: {' '.join(cmd)}", flush=True)
+
+    subprocess.run(cmd, check=True)
+    return out_dir / f"{video_path.stem}.json"
+
+
 def transcribe_one(
     video: Path,
     edit_dir: Path,
     language: str | None = None,
+    backend: str = "docker",
     verbose: bool = True,
     **kwargs
 ) -> Path:
@@ -84,10 +111,13 @@ def transcribe_one(
         return out_path
 
     if verbose:
-        print(f"  transcribing {video.name} with Whisper", flush=True)
+        print(f"  transcribing {video.name} with Whisper ({backend})", flush=True)
 
     t0 = time.time()
-    call_whisper_docker(video, transcripts_dir, language, verbose)
+    if backend == "local":
+        call_whisper_local(video, transcripts_dir, language, verbose)
+    else:
+        call_whisper_docker(video, transcripts_dir, language, verbose)
     dt = time.time() - t0
 
     if verbose:
@@ -112,6 +142,13 @@ def main() -> None:
         default=None,
         help="Optional ISO language code (e.g., 'Portuguese'). Omit to auto-detect.",
     )
+    ap.add_argument(
+        "--backend",
+        type=str,
+        choices=["docker", "local"],
+        default="docker",
+        help="Backend to use: 'docker' (default) or 'local' (requires openai-whisper installed in current environment).",
+    )
     # Keeping num-speakers just to not break existing scripts silently, though ignored
     ap.add_argument(
         "--num-speakers",
@@ -131,6 +168,7 @@ def main() -> None:
         video=video,
         edit_dir=edit_dir,
         language=args.language,
+        backend=args.backend,
     )
 
 
